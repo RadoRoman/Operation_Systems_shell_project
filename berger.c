@@ -7,7 +7,6 @@ int main (int argc, char *argv[]){
     char *x = argv[1];
     if(!strcmp(x,"quit")) {
         printf("enter code to quit program\n");
-        break;
         }
     else if (!strcmp(x,"globalusage")) {
         printf("IMCSH Version 1.1 created by R.Roman and J.Berger\n");
