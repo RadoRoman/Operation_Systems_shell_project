@@ -5,6 +5,7 @@
 #include<sys/types.h>
 #include<sys/wait.h>
 #include<sys/utsname.h>
+#include <fcntl.h>
 
 void print_array(int len, char* arr[]){
     printf("array has %d entries\n", len );
@@ -19,7 +20,7 @@ int check_modifier1(char *arr[], int len){
     for (int i=0;i<len ;i++)
     {
     if (strcmp(arr[i],">")==0){
-        //printf("found modifier: > at %d index\n",i);
+        printf("found modifier: > at %d index\n",i);
         return 1;
     }
     }
@@ -38,11 +39,16 @@ int check_modifier2(char *arr[], int len){
 }
 
 int shell_parse(){
+    char* username;
+    char hostname[_SC_HOST_NAME_MAX];
+    gethostname(hostname, _SC_HOST_NAME_MAX);
 
-    printf("username@hostname>");
+    username = getenv("USER");
+    printf("%s@%s>",username,hostname);
     char line[100];
     /*take user input*/
     fgets(line,100,stdin);
+
 
     /*tokenize user input*/
     char *token;
@@ -89,7 +95,11 @@ int shell_parse(){
             //get file name and check if present
             int index = j-1;
             printf("%s\n", tokenarray[index]);
+
             //use dup2 system call
+            int file = open(tokenarray[index], O_WRONLY | O_CREAT, 0777);
+            dup2(file,STDOUT_FILENO);
+            close(file);
             
         }else if (check_modifier2(tokenarray,j)==1){
             printf("modifier & found\n");
@@ -98,10 +108,15 @@ int shell_parse(){
         //no modifiers present, parse input string
         /*takes the input from tokenarray and adds them into cmd array for the execvp function*/
         char* cmd = tokenarray[1];
-        char *cmdarray[3];
-        cmdarray[0]=tokenarray[1];
-        cmdarray[1]=tokenarray[2];
-        cmdarray[2]=NULL;
+        /*create a new array cmd array and use all tokenarray componenets except the one
+        at index 0. Then add NULL at the last element of cmd array*/
+        char *cmdarray[j];
+        int last_index = j-1;
+        for (int i=0;i<j;i++){
+            int ii = i+1; //c doesnt allow to have i+1 in square brackets so we had to inititalize new integers
+            cmdarray[i]=tokenarray[ii];
+        }
+        cmdarray[last_index] = NULL;//last entry needs to be NULL
 
         pid_t pid;
         pid = fork();
@@ -109,7 +124,7 @@ int shell_parse(){
             fprintf(stderr, "Fork failed");
             return 1;}
         else if (pid ==0) {
-
+            
             execvp(cmd,cmdarray);} //ls,-l,NULL
 
         else {
@@ -123,6 +138,7 @@ int shell_parse(){
 
 
 int main(int argc, char *argv[]){
+
     int i = 1;
 
     while (i == 1){
